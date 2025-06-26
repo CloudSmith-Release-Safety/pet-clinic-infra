@@ -1,0 +1,7 @@
+{
+  "org_name": "multi-repo-org",
+  "repo_name": "pet-clinic-infra",
+  "repo_url": "https://github.com/multi-repo-org/pet-clinic-infra",
+  "provided_apis": [],
+  "consumed_apis": []
+}
