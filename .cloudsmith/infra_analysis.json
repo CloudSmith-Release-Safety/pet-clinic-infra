@@ -1,0 +1,834 @@
+{
+  "org_name": "multi-repo-org",
+  "repo_name": "pet-clinic-infra",
+  "repo_url": "https://github.com/multi-repo-org/pet-clinic-infra",
+  "infrastructure_providers": [
+    {
+      "provider_id": "eks_cluster",
+      "resource_type": "EKS",
+      "resource_identifier": "petclinic-demo",
+      "file_path": "terraform/eks/main.tf",
+      "infrastructure_type": "Terraform",
+      "description": "Amazon EKS cluster for running the Pet Clinic microservices application",
+      "interfaces": [
+        {
+          "interface_type": "api",
+          "endpoint_pattern": "https://${cluster_endpoint}:443",
+          "operations": ["CreatePod", "DeletePod", "ListPods", "GetPod", "UpdatePod"],
+          "authentication": "IAM"
+        },
+        {
+          "interface_type": "network",
+          "endpoint_pattern": "*.${cluster_name}.${region}.eks.amazonaws.com",
+          "operations": ["Connect", "ExecuteCommand"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "version": "1.32",
+        "public_access": true,
+        "private_access": true,
+        "vpc_id": "${module.vpc.vpc_id}",
+        "subnet_ids": "${module.vpc.private_subnets}"
+      },
+      "security": {
+        "authentication": "IAM roles with OIDC provider",
+        "authorization": "RBAC and IAM policies"
+      },
+      "environment_variables": [],
+      "deployment_details": {
+        "region": "us-west-2",
+        "deployment_tool": "Terraform",
+        "deployment_pipeline": "GitHub Actions"
+      },
+      "external_consumers": [
+        "spring-petclinic-api-gateway",
+        "spring-petclinic-discovery-server",
+        "spring-petclinic-config-server",
+        "spring-petclinic-visits-service",
+        "spring-petclinic-vets-service",
+        "spring-petclinic-customers-service",
+        "spring-petclinic-admin-server",
+        "python-petclinic-insurance-service",
+        "python-petclinic-billing-service",
+        "dotnet-petclinic-payment"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "vpc_network",
+      "resource_type": "VPC",
+      "resource_identifier": "petclinic-demo",
+      "file_path": "terraform/eks/main.tf",
+      "infrastructure_type": "Terraform",
+      "description": "Amazon VPC network providing networking isolation for the Pet Clinic application",
+      "interfaces": [
+        {
+          "interface_type": "network",
+          "endpoint_pattern": "10.0.0.0/16",
+          "operations": ["CreateSubnet", "DeleteSubnet", "CreateSecurityGroup", "ModifySecurityGroup"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "cidr_block": "10.0.0.0/16",
+        "private_subnets": ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"],
+        "public_subnets": ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"],
+        "database_subnets": ["10.0.201.0/24", "10.0.202.0/24", "10.0.203.0/24"],
+        "nat_gateway": true
+      },
+      "security": {
+        "network_acls": "Default",
+        "security_groups": "Default plus custom rules for RDS access"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-api-gateway",
+        "spring-petclinic-discovery-server",
+        "spring-petclinic-config-server",
+        "spring-petclinic-visits-service",
+        "spring-petclinic-vets-service",
+        "spring-petclinic-customers-service",
+        "spring-petclinic-admin-server",
+        "python-petclinic-insurance-service",
+        "python-petclinic-billing-service",
+        "dotnet-petclinic-payment"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "postgres_database",
+      "resource_type": "RDS",
+      "resource_identifier": "petclinic-database",
+      "file_path": "terraform/eks/database.tf",
+      "infrastructure_type": "Terraform",
+      "description": "PostgreSQL database for storing Pet Clinic application data",
+      "interfaces": [
+        {
+          "interface_type": "database",
+          "endpoint_pattern": "${module.db.db_instance_endpoint}",
+          "operations": ["Connect", "Query", "Insert", "Update", "Delete"],
+          "authentication": "Username/Password"
+        }
+      ],
+      "configuration": {
+        "engine": "postgres",
+        "version": "16",
+        "instance_class": "db.t4g.large",
+        "allocated_storage": 20,
+        "max_allocated_storage": 100,
+        "multi_az": true,
+        "db_name": "postgres",
+        "username": "djangouser",
+        "port": 5432,
+        "backup_retention_period": 1,
+        "performance_insights_enabled": true
+      },
+      "security": {
+        "security_group": "${module.vpc.default_security_group_id}",
+        "subnet_group": "${module.vpc.database_subnet_group_name}",
+        "deletion_protection": false
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-visits-service",
+        "spring-petclinic-vets-service",
+        "spring-petclinic-customers-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "billing_info_table",
+      "resource_type": "DynamoDB",
+      "resource_identifier": "BillingInfo",
+      "file_path": "terraform/eks/database.tf",
+      "infrastructure_type": "Terraform",
+      "description": "DynamoDB table for storing billing information of pet owners",
+      "interfaces": [
+        {
+          "interface_type": "database",
+          "endpoint_pattern": "dynamodb.${region}.amazonaws.com/BillingInfo",
+          "operations": ["GetItem", "PutItem", "UpdateItem", "DeleteItem", "Query", "Scan"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "billing_mode": "PROVISIONED",
+        "read_capacity": 4,
+        "write_capacity": 6,
+        "hash_key": "ownerId",
+        "range_key": "timestamp",
+        "point_in_time_recovery": false
+      },
+      "security": {
+        "encryption": "Default",
+        "access_control": "IAM"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "python-petclinic-billing-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "payment_table",
+      "resource_type": "DynamoDB",
+      "resource_identifier": "PetClinicPayment",
+      "file_path": "terraform/eks/database.tf",
+      "infrastructure_type": "Terraform",
+      "description": "DynamoDB table for storing pet clinic payment transactions",
+      "interfaces": [
+        {
+          "interface_type": "database",
+          "endpoint_pattern": "dynamodb.${region}.amazonaws.com/PetClinicPayment",
+          "operations": ["GetItem", "PutItem", "UpdateItem", "DeleteItem", "Query", "Scan"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "billing_mode": "PROVISIONED",
+        "read_capacity": 2,
+        "write_capacity": 1,
+        "hash_key": "id",
+        "point_in_time_recovery": true
+      },
+      "security": {
+        "encryption": "Default",
+        "access_control": "IAM"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "dotnet-petclinic-payment"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "apm_test_table",
+      "resource_type": "DynamoDB",
+      "resource_identifier": "apm_test",
+      "file_path": "terraform/eks/database.tf",
+      "infrastructure_type": "Terraform",
+      "description": "DynamoDB table for testing APM functionality",
+      "interfaces": [
+        {
+          "interface_type": "database",
+          "endpoint_pattern": "dynamodb.${region}.amazonaws.com/apm_test",
+          "operations": ["GetItem", "PutItem", "UpdateItem", "DeleteItem", "Query", "Scan"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "billing_mode": "PROVISIONED",
+        "read_capacity": 1,
+        "write_capacity": 1,
+        "hash_key": "id",
+        "point_in_time_recovery": true
+      },
+      "security": {
+        "encryption": "Default",
+        "access_control": "IAM"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-visits-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "apm_test_queue",
+      "resource_type": "SQS",
+      "resource_identifier": "apm_test",
+      "file_path": "terraform/eks/main.tf",
+      "infrastructure_type": "Terraform",
+      "description": "SQS queue for testing APM functionality",
+      "interfaces": [
+        {
+          "interface_type": "queue",
+          "endpoint_pattern": "sqs.${region}.amazonaws.com/apm_test",
+          "operations": ["SendMessage", "ReceiveMessage", "DeleteMessage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "fifo_queue": false,
+        "content_based_deduplication": false,
+        "delay_seconds": 0
+      },
+      "security": {
+        "encryption": "Default",
+        "access_control": "IAM"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-visits-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "apm_test_stream",
+      "resource_type": "Kinesis",
+      "resource_identifier": "apm_test",
+      "file_path": "terraform/eks/main.tf",
+      "infrastructure_type": "Terraform",
+      "description": "Kinesis stream for testing APM functionality",
+      "interfaces": [
+        {
+          "interface_type": "stream",
+          "endpoint_pattern": "kinesis.${region}.amazonaws.com/apm_test",
+          "operations": ["PutRecord", "PutRecords", "GetRecords", "GetShardIterator"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "shard_count": 1,
+        "retention_period": 24,
+        "encryption": "none"
+      },
+      "security": {
+        "encryption": "none",
+        "access_control": "IAM"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-visits-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "visits_service_account",
+      "resource_type": "IAM",
+      "resource_identifier": "DemoServiceRole-petclinic-demo",
+      "file_path": "terraform/eks/main.tf",
+      "infrastructure_type": "Terraform",
+      "description": "IAM role for the visits service with permissions to access AWS services",
+      "interfaces": [
+        {
+          "interface_type": "auth",
+          "endpoint_pattern": "iam.amazonaws.com/role/DemoServiceRole-petclinic-demo",
+          "operations": ["AssumeRole"],
+          "authentication": "OIDC"
+        }
+      ],
+      "configuration": {
+        "trust_entity": "OIDC",
+        "oidc_provider": "${replace(module.eks.oidc_provider, \"https://\", \"\")}",
+        "namespaces": ["default"],
+        "service_accounts": ["visits-service-account"]
+      },
+      "security": {
+        "policies": [
+          "arn:aws:iam::aws:policy/AmazonSQSFullAccess", 
+          "arn:aws:iam::aws:policy/AmazonS3FullAccess", 
+          "arn:aws:iam::aws:policy/AmazonKinesisFullAccess", 
+          "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess", 
+          "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
+        ]
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-visits-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "cloudwatch_observability",
+      "resource_type": "CloudWatch",
+      "resource_identifier": "amazon-cloudwatch-observability",
+      "file_path": "terraform/eks/observability.tf",
+      "infrastructure_type": "Terraform",
+      "description": "CloudWatch observability addon for EKS to monitor application performance",
+      "interfaces": [
+        {
+          "interface_type": "logging",
+          "endpoint_pattern": "logs.${region}.amazonaws.com",
+          "operations": ["PutLogEvents", "CreateLogStream", "CreateLogGroup"],
+          "authentication": "IAM"
+        },
+        {
+          "interface_type": "metrics",
+          "endpoint_pattern": "monitoring.${region}.amazonaws.com",
+          "operations": ["PutMetricData"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "addon_version": "v1.5.1-eksbuild.1"
+      },
+      "security": {
+        "service_account_role": "AmazonCloudWatchObservabilityAddonRole-${var.cluster_name}",
+        "policies": ["CloudWatchAgentServerPolicy", "AWSXrayFullAccess"]
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-api-gateway",
+        "spring-petclinic-discovery-server",
+        "spring-petclinic-config-server",
+        "spring-petclinic-visits-service",
+        "spring-petclinic-vets-service",
+        "spring-petclinic-customers-service",
+        "spring-petclinic-admin-server",
+        "python-petclinic-insurance-service",
+        "python-petclinic-billing-service",
+        "dotnet-petclinic-payment"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "appsignals_log_group",
+      "resource_type": "CloudWatch",
+      "resource_identifier": "/aws/appsignals/eks",
+      "file_path": "terraform/eks/observability.tf",
+      "infrastructure_type": "Terraform",
+      "description": "CloudWatch log group for App Signals for monitoring application health and performance",
+      "interfaces": [
+        {
+          "interface_type": "logging",
+          "endpoint_pattern": "logs.${region}.amazonaws.com/aws/appsignals/eks",
+          "operations": ["PutLogEvents", "GetLogEvents"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "retention_in_days": 30,
+        "encryption": "none"
+      },
+      "security": {
+        "access_control": "IAM"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-api-gateway",
+        "spring-petclinic-discovery-server",
+        "spring-petclinic-config-server",
+        "spring-petclinic-visits-service",
+        "spring-petclinic-vets-service",
+        "spring-petclinic-customers-service",
+        "spring-petclinic-admin-server",
+        "python-petclinic-insurance-service",
+        "python-petclinic-billing-service",
+        "dotnet-petclinic-payment"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "api_gateway_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "springcommunity/spring-petclinic-api-gateway",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for API Gateway service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/springcommunity/spring-petclinic-api-gateway",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-api-gateway"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "discovery_server_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "springcommunity/spring-petclinic-discovery-server",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for Discovery Server service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/springcommunity/spring-petclinic-discovery-server",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-discovery-server"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "config_server_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "springcommunity/spring-petclinic-config-server",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for Config Server service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/springcommunity/spring-petclinic-config-server",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-config-server"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "visits_service_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "springcommunity/spring-petclinic-visits-service",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for Visits Service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/springcommunity/spring-petclinic-visits-service",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-visits-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "vets_service_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "springcommunity/spring-petclinic-vets-service",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for Vets Service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/springcommunity/spring-petclinic-vets-service",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-vets-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "customers_service_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "springcommunity/spring-petclinic-customers-service",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for Customers Service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/springcommunity/spring-petclinic-customers-service",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-customers-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "admin_server_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "springcommunity/spring-petclinic-admin-server",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for Admin Server container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/springcommunity/spring-petclinic-admin-server",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-admin-server"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "insurance_service_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "python-petclinic-insurance-service",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for Python Insurance Service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/python-petclinic-insurance-service",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "python-petclinic-insurance-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "billing_service_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "python-petclinic-billing-service",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for Python Billing Service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/python-petclinic-billing-service",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "python-petclinic-billing-service"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "payment_service_ecr",
+      "resource_type": "ECR",
+      "resource_identifier": "dotnet-petclinic-payment",
+      "file_path": "terraform/eks/repo.tf",
+      "infrastructure_type": "Terraform",
+      "description": "ECR repository for .NET Payment Service container images",
+      "interfaces": [
+        {
+          "interface_type": "container-registry",
+          "endpoint_pattern": "${account_id}.dkr.ecr.${region}.amazonaws.com/dotnet-petclinic-payment",
+          "operations": ["PushImage", "PullImage"],
+          "authentication": "IAM"
+        }
+      ],
+      "configuration": {
+        "image_tag_mutability": "MUTABLE",
+        "force_delete": true,
+        "scan_on_push": true
+      },
+      "security": {
+        "encryption": "KMS"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "dotnet-petclinic-payment"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "alb_controller",
+      "resource_type": "ALB",
+      "resource_identifier": "aws-load-balancer-controller",
+      "file_path": "terraform/eks/alb-controller.tf",
+      "infrastructure_type": "Terraform",
+      "description": "AWS Load Balancer Controller for managing Ingress resources in EKS",
+      "interfaces": [
+        {
+          "interface_type": "api",
+          "endpoint_pattern": "kubernetes.default.svc/apis/networking.k8s.io",
+          "operations": ["CreateIngress", "UpdateIngress", "DeleteIngress"],
+          "authentication": "Service Account"
+        }
+      ],
+      "configuration": {
+        "cluster_name": "petclinic-demo",
+        "oidc_issuer": "${module.eks.cluster_oidc_issuer_url}"
+      },
+      "security": {
+        "oidc_provider": "${module.eks.oidc_provider_arn}"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-api-gateway",
+        "spring-petclinic-discovery-server",
+        "spring-petclinic-config-server",
+        "spring-petclinic-visits-service",
+        "spring-petclinic-vets-service",
+        "spring-petclinic-customers-service",
+        "spring-petclinic-admin-server",
+        "python-petclinic-insurance-service",
+        "python-petclinic-billing-service",
+        "dotnet-petclinic-payment"
+      ],
+      "provider_type": "internal"
+    },
+    {
+      "provider_id": "ebs_csi_driver",
+      "resource_type": "EBS",
+      "resource_identifier": "aws-ebs-csi-driver",
+      "file_path": "terraform/eks/ebs-csi-driver.tf",
+      "infrastructure_type": "Terraform",
+      "description": "EBS CSI Driver for provisioning persistent volumes in EKS",
+      "interfaces": [
+        {
+          "interface_type": "storage",
+          "endpoint_pattern": "kubernetes.default.svc/apis/storage.k8s.io",
+          "operations": ["CreateVolume", "DeleteVolume", "AttachVolume", "DetachVolume"],
+          "authentication": "Service Account"
+        }
+      ],
+      "configuration": {
+        "addon_version": "v1.41.0-eksbuild.1",
+        "service_account": "ebs-csi-controller-sa"
+      },
+      "security": {
+        "service_account_role": "AmazonEbsCsiDriverAddonRole-${var.cluster_name}"
+      },
+      "environment_variables": [],
+      "external_consumers": [
+        "spring-petclinic-api-gateway",
+        "spring-petclinic-discovery-server",
+        "spring-petclinic-config-server",
+        "spring-petclinic-visits-service",
+        "spring-petclinic-vets-service",
+        "spring-petclinic-customers-service",
+        "spring-petclinic-admin-server",
+        "python-petclinic-insurance-service",
+        "python-petclinic-billing-service",
+        "dotnet-petclinic-payment"
+      ],
+      "provider_type": "internal"
+    }
+  ],
+  "application_consumers": [],
+  "connections": [],
+  "architecture": {
+    "application_type": "microservice",
+    "infrastructure_pattern": "container-based",
+    "deployment_approach": "CI/CD with Terraform",
+    "configuration_management": "Environment variables and configuration files",
+    "critical_paths": [
+      {
+        "path_name": "service_to_database",
+        "description": "Microservices connecting to PostgreSQL database",
+        "components": ["eks_cluster", "postgres_database"]
+      },
+      {
+        "path_name": "payment_processing",
+        "description": "Payment service using DynamoDB for transaction storage",
+        "components": ["eks_cluster", "payment_table", "payment_service_ecr"]
+      },
+      {
+        "path_name": "billing_management",
+        "description": "Billing service using DynamoDB for billing information",
+        "components": ["eks_cluster", "billing_info_table", "billing_service_ecr"]
+      },
+      {
+        "path_name": "observability_integration",
+        "description": "All services sending metrics and logs to CloudWatch",
+        "components": ["cloudwatch_observability", "appsignals_log_group"]
+      },
+      {
+        "path_name": "api_gateway_routing",
+        "description": "API Gateway routing requests to appropriate microservices",
+        "components": ["eks_cluster", "alb_controller", "api_gateway_ecr"]
+      }
+    ],
+    "security_model": {
+      "authentication": "IAM roles with OIDC provider for service accounts",
+      "authorization": "Kubernetes RBAC and AWS IAM policies",
+      "data_protection": "KMS encryption for container images"
+    },
+    "cross_repo_dependencies": {
+      "provides_to": [
+        {"repository": "spring-petclinic-api-gateway", "resources": ["eks_cluster", "api_gateway_ecr", "alb_controller"]},
+        {"repository": "spring-petclinic-discovery-server", "resources": ["eks_cluster", "discovery_server_ecr"]},
+        {"repository": "spring-petclinic-config-server", "resources": ["eks_cluster", "config_server_ecr"]},
+        {"repository": "spring-petclinic-visits-service", "resources": ["eks_cluster", "visits_service_ecr", "postgres_database", "apm_test_table", "apm_test_queue", "apm_test_stream", "visits_service_account"]},
+        {"repository": "spring-petclinic-vets-service", "resources": ["eks_cluster", "vets_service_ecr", "postgres_database"]},
+        {"repository": "spring-petclinic-customers-service", "resources": ["eks_cluster", "customers_service_ecr", "postgres_database"]},
+        {"repository": "spring-petclinic-admin-server", "resources": ["eks_cluster", "admin_server_ecr"]},
+        {"repository": "python-petclinic-insurance-service", "resources": ["eks_cluster", "insurance_service_ecr"]},
+        {"repository": "python-petclinic-billing-service", "resources": ["eks_cluster", "billing_service_ecr", "billing_info_table"]},
+        {"repository": "dotnet-petclinic-payment", "resources": ["eks_cluster", "payment_service_ecr", "payment_table"]}
+      ],
+      "consumes_from": [],
+      "shared_infrastructure": true
+    }
+  }
+}
