@@ -1,7 +1,7 @@
 {
-  "org_name": "multi-repo-org",
+  "org_name": "CloudSmith-Release-Safety",
   "repo_name": "pet-clinic-infra",
-  "repo_url": "https://github.com/multi-repo-org/pet-clinic-infra",
+  "repo_url": "https://github.com/CloudSmith-Release-Safety/pet-clinic-infra",
   "infrastructure_providers": [
     {
       "provider_id": "eks_cluster",
@@ -352,7 +352,7 @@
         }
       ],
       "configuration": {
-        "addon_version": "v1.5.1-eksbuild.1"
+        "addon_version": "v3.6.0-eksbuild.2"
       },
       "security": {
         "service_account_role": "AmazonCloudWatchObservabilityAddonRole-${var.cluster_name}",
@@ -776,7 +776,178 @@
     }
   ],
   "application_consumers": [],
-  "connections": [],
+  "connections": [
+    {
+      "connection_id": "visits_service_to_postgres",
+      "consumer_id": "spring_petclinic_visits",
+      "provider_id": "postgres_database",
+      "provider_resource_type": "RDS",
+      "operation": "Query",
+      "access_type": "read",
+      "description": "Spring Petclinic Visits Service connects to PostgreSQL database for visit data storage and retrieval",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/database.tf",
+      "configuration_source": "environment variable",
+      "criticality": "high",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "visits_service_to_apm_test_table",
+      "consumer_id": "spring_petclinic_visits",
+      "provider_id": "apm_test_table",
+      "provider_resource_type": "DynamoDB",
+      "operation": "GetItem",
+      "access_type": "read",
+      "description": "Spring Petclinic Visits Service reads from APM test DynamoDB table for testing and monitoring",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/database.tf",
+      "configuration_source": "IAM role",
+      "criticality": "medium",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "visits_service_to_apm_test_queue",
+      "consumer_id": "spring_petclinic_visits",
+      "provider_id": "apm_test_queue",
+      "provider_resource_type": "SQS",
+      "operation": "SendMessage",
+      "access_type": "write",
+      "description": "Spring Petclinic Visits Service sends messages to SQS for APM testing",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/main.tf",
+      "configuration_source": "IAM role",
+      "criticality": "medium",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "visits_service_to_apm_test_stream",
+      "consumer_id": "spring_petclinic_visits",
+      "provider_id": "apm_test_stream",
+      "provider_resource_type": "Kinesis",
+      "operation": "PutRecord",
+      "access_type": "write",
+      "description": "Spring Petclinic Visits Service writes records to Kinesis stream for APM testing",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/main.tf",
+      "configuration_source": "IAM role",
+      "criticality": "medium",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "vets_service_to_postgres",
+      "consumer_id": "spring_petclinic_vets",
+      "provider_id": "postgres_database",
+      "provider_resource_type": "RDS",
+      "operation": "Query",
+      "access_type": "read",
+      "description": "Spring Petclinic Vets Service connects to PostgreSQL database for veterinarian data",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/database.tf",
+      "configuration_source": "environment variable",
+      "criticality": "high",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "customers_service_to_postgres",
+      "consumer_id": "spring_petclinic_customers",
+      "provider_id": "postgres_database",
+      "provider_resource_type": "RDS",
+      "operation": "Query",
+      "access_type": "read",
+      "description": "Spring Petclinic Customers Service connects to PostgreSQL database for customer data",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/database.tf",
+      "configuration_source": "environment variable",
+      "criticality": "high",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "billing_service_to_billing_table",
+      "consumer_id": "python_billing_service",
+      "provider_id": "billing_info_table",
+      "provider_resource_type": "DynamoDB",
+      "operation": "PutItem",
+      "access_type": "write",
+      "description": "Python Billing Service writes billing information to DynamoDB table",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/database.tf",
+      "configuration_source": "IAM role",
+      "criticality": "high",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "payment_service_to_payment_table",
+      "consumer_id": "dotnet_payment_service",
+      "provider_id": "payment_table",
+      "provider_resource_type": "DynamoDB",
+      "operation": "PutItem",
+      "access_type": "write",
+      "description": ".NET Payment Service writes payment transaction data to DynamoDB table",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/database.tf",
+      "configuration_source": "IAM role",
+      "criticality": "high",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "all_services_to_cloudwatch",
+      "consumer_id": "petclinic_services",
+      "provider_id": "cloudwatch_observability",
+      "provider_resource_type": "CloudWatch",
+      "operation": "PutLogEvents",
+      "access_type": "write",
+      "description": "All Pet Clinic services send logs and metrics to CloudWatch for monitoring",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/observability.tf",
+      "configuration_source": "EKS add-on",
+      "criticality": "medium",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    },
+    {
+      "connection_id": "all_services_to_appsignals",
+      "consumer_id": "petclinic_services",
+      "provider_id": "appsignals_log_group",
+      "provider_resource_type": "CloudWatch",
+      "operation": "PutLogEvents",
+      "access_type": "write",
+      "description": "All Pet Clinic services send application signals data to CloudWatch for performance monitoring",
+      "code_snippet": "N/A - External service code not available in this repository",
+      "source_file_path": "N/A",
+      "target_file_path": "terraform/eks/observability.tf",
+      "configuration_source": "EKS add-on",
+      "criticality": "medium",
+      "connection_type": "direct",
+      "cross_repo": true,
+      "target_repo": "CloudSmith-Release-Safety/pet-clinic-infra"
+    }
+  ],
   "architecture": {
     "application_type": "microservice",
     "infrastructure_pattern": "container-based",
@@ -786,27 +957,27 @@
       {
         "path_name": "service_to_database",
         "description": "Microservices connecting to PostgreSQL database",
-        "components": ["eks_cluster", "postgres_database"]
+        "involved_components": ["eks_cluster", "postgres_database", "spring-petclinic-visits-service", "spring-petclinic-vets-service", "spring-petclinic-customers-service"]
       },
       {
         "path_name": "payment_processing",
         "description": "Payment service using DynamoDB for transaction storage",
-        "components": ["eks_cluster", "payment_table", "payment_service_ecr"]
+        "involved_components": ["eks_cluster", "payment_table", "dotnet-petclinic-payment"]
       },
       {
         "path_name": "billing_management",
         "description": "Billing service using DynamoDB for billing information",
-        "components": ["eks_cluster", "billing_info_table", "billing_service_ecr"]
+        "involved_components": ["eks_cluster", "billing_info_table", "python-petclinic-billing-service"]
       },
       {
         "path_name": "observability_integration",
         "description": "All services sending metrics and logs to CloudWatch",
-        "components": ["cloudwatch_observability", "appsignals_log_group"]
+        "involved_components": ["cloudwatch_observability", "appsignals_log_group", "all microservices"]
       },
       {
         "path_name": "api_gateway_routing",
         "description": "API Gateway routing requests to appropriate microservices",
-        "components": ["eks_cluster", "alb_controller", "api_gateway_ecr"]
+        "involved_components": ["eks_cluster", "alb_controller", "spring-petclinic-api-gateway"]
       }
     ],
     "security_model": {
