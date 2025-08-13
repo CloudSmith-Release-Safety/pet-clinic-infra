@@ -1,7 +1,7 @@
 {
-  "org_name": "multi-repo-org",
+  "org_name": "CloudSmith-Release-Safety",
   "repo_name": "pet-clinic-infra",
-  "repo_url": "https://github.com/multi-repo-org/pet-clinic-infra",
+  "repo_url": "https://github.com/CloudSmith-Release-Safety/pet-clinic-infra",
   "provided_apis": [],
   "consumed_apis": []
 }
