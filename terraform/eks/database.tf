@@ -23,9 +23,8 @@ module "db" {
   # "Error creating DB Instance: InvalidParameterValue: MasterUsername
   # user cannot be used as it is a reserved word used by the engine"
   db_name  = "postgres"
-  manage_master_user_password = false
+  manage_master_user_password = true
   username = "djangouser"
-  password = "asdfqwer"
   port     = 5432
 
   # setting manage_master_user_password_rotation to false after it
