@@ -157,4 +157,26 @@ resource "aws_dynamodb_table" "payment_table" {
 
 }
 
+resource "aws_dynamodb_table" "insurance_claims" {
+  name           = "InsuranceClaims"
+  billing_mode   = "PROVISIONED"
+  read_capacity  = 2
+  write_capacity = 2
+  hash_key       = "claimId"
+  range_key      = "ownerId"
+
+  attribute {
+    name = "claimId"
+    type = "S"
+  }
+
+  attribute {
+    name = "ownerId"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+}
 
