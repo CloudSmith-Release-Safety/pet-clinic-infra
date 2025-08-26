@@ -2,6 +2,276 @@
   "org_name": "CloudSmith-Release-Safety",
   "repo_name": "pet-clinic-infra",
   "repo_url": "https://github.com/CloudSmith-Release-Safety/pet-clinic-infra",
-  "provided_apis": [],
+  "provided_apis": [
+    {
+      "type": "rest",
+      "endpoint": "/apis/networking.k8s.io",
+      "method": "POST",
+      "service_name": "AlbControllerService",
+      "description": "AWS Load Balancer Controller API that creates Kubernetes Ingress resources",
+      "file_path": "terraform/eks/alb-controller.tf",
+      "parameters": {
+        "body": {
+          "type": "object",
+          "required": true,
+          "description": "Ingress resource definition",
+          "properties": {
+            "apiVersion": {
+              "type": "string",
+              "required": true,
+              "description": "API version for the Ingress resource"
+            },
+            "kind": {
+              "type": "string",
+              "required": true,
+              "description": "Resource kind - Ingress"
+            },
+            "metadata": {
+              "type": "object",
+              "required": true,
+              "description": "Metadata for the Ingress resource"
+            },
+            "spec": {
+              "type": "object",
+              "required": true,
+              "description": "Specification for the Ingress resource"
+            }
+          }
+        },
+        "header": [
+          {
+            "name": "Authorization",
+            "type": "string",
+            "required": true,
+            "description": "Service Account token for authentication"
+          }
+        ]
+      },
+      "responses": {
+        "201": {
+          "description": "Ingress created successfully",
+          "content_type": "application/json"
+        },
+        "400": {
+          "description": "Bad request - invalid resource definition",
+          "content_type": "application/json"
+        },
+        "401": {
+          "description": "Unauthorized - invalid or missing token",
+          "content_type": "application/json"
+        }
+      }
+    },
+    {
+      "type": "rest",
+      "endpoint": "/apis/networking.k8s.io",
+      "method": "PUT",
+      "service_name": "AlbControllerService",
+      "description": "AWS Load Balancer Controller API that updates Kubernetes Ingress resources",
+      "file_path": "terraform/eks/alb-controller.tf",
+      "parameters": {
+        "body": {
+          "type": "object",
+          "required": true,
+          "description": "Ingress resource definition",
+          "properties": {
+            "apiVersion": {
+              "type": "string",
+              "required": true,
+              "description": "API version for the Ingress resource"
+            },
+            "kind": {
+              "type": "string",
+              "required": true,
+              "description": "Resource kind - Ingress"
+            },
+            "metadata": {
+              "type": "object",
+              "required": true,
+              "description": "Metadata for the Ingress resource"
+            },
+            "spec": {
+              "type": "object",
+              "required": true,
+              "description": "Specification for the Ingress resource"
+            }
+          }
+        },
+        "header": [
+          {
+            "name": "Authorization",
+            "type": "string",
+            "required": true,
+            "description": "Service Account token for authentication"
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "Ingress updated successfully",
+          "content_type": "application/json"
+        },
+        "400": {
+          "description": "Bad request - invalid resource definition",
+          "content_type": "application/json"
+        },
+        "401": {
+          "description": "Unauthorized - invalid or missing token",
+          "content_type": "application/json"
+        }
+      }
+    },
+    {
+      "type": "rest",
+      "endpoint": "/apis/networking.k8s.io",
+      "method": "DELETE",
+      "service_name": "AlbControllerService",
+      "description": "AWS Load Balancer Controller API that deletes Kubernetes Ingress resources",
+      "file_path": "terraform/eks/alb-controller.tf",
+      "parameters": {
+        "path": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "Name of the Ingress resource"
+          },
+          {
+            "name": "namespace",
+            "type": "string",
+            "required": true,
+            "description": "Namespace of the Ingress resource"
+          }
+        ],
+        "header": [
+          {
+            "name": "Authorization",
+            "type": "string",
+            "required": true,
+            "description": "Service Account token for authentication"
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "Ingress deleted successfully",
+          "content_type": "application/json"
+        },
+        "401": {
+          "description": "Unauthorized - invalid or missing token",
+          "content_type": "application/json"
+        },
+        "404": {
+          "description": "Not found - Ingress resource not found",
+          "content_type": "application/json"
+        }
+      }
+    },
+    {
+      "type": "rest",
+      "endpoint": "/apis/storage.k8s.io",
+      "method": "POST",
+      "service_name": "EbsCsiDriverService",
+      "description": "EBS CSI Driver API that creates persistent volumes in Kubernetes",
+      "file_path": "terraform/eks/ebs-csi-driver.tf",
+      "parameters": {
+        "body": {
+          "type": "object",
+          "required": true,
+          "description": "PersistentVolume or PersistentVolumeClaim resource definition",
+          "properties": {
+            "apiVersion": {
+              "type": "string",
+              "required": true,
+              "description": "API version for the resource"
+            },
+            "kind": {
+              "type": "string",
+              "required": true,
+              "description": "Resource kind - PersistentVolume or PersistentVolumeClaim"
+            },
+            "metadata": {
+              "type": "object",
+              "required": true,
+              "description": "Metadata for the resource"
+            },
+            "spec": {
+              "type": "object",
+              "required": true,
+              "description": "Specification for the resource"
+            }
+          }
+        },
+        "header": [
+          {
+            "name": "Authorization",
+            "type": "string",
+            "required": true,
+            "description": "Service Account token for authentication"
+          }
+        ]
+      },
+      "responses": {
+        "201": {
+          "description": "Storage resource created successfully",
+          "content_type": "application/json"
+        },
+        "400": {
+          "description": "Bad request - invalid resource definition",
+          "content_type": "application/json"
+        },
+        "401": {
+          "description": "Unauthorized - invalid or missing token",
+          "content_type": "application/json"
+        }
+      }
+    },
+    {
+      "type": "rest",
+      "endpoint": "/apis/storage.k8s.io",
+      "method": "DELETE",
+      "service_name": "EbsCsiDriverService",
+      "description": "EBS CSI Driver API that deletes persistent volumes in Kubernetes",
+      "file_path": "terraform/eks/ebs-csi-driver.tf",
+      "parameters": {
+        "path": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "Name of the storage resource"
+          },
+          {
+            "name": "namespace",
+            "type": "string",
+            "required": false,
+            "description": "Namespace of the storage resource (for PersistentVolumeClaim)"
+          }
+        ],
+        "header": [
+          {
+            "name": "Authorization",
+            "type": "string",
+            "required": true,
+            "description": "Service Account token for authentication"
+          }
+        ]
+      },
+      "responses": {
+        "200": {
+          "description": "Storage resource deleted successfully",
+          "content_type": "application/json"
+        },
+        "401": {
+          "description": "Unauthorized - invalid or missing token",
+          "content_type": "application/json"
+        },
+        "404": {
+          "description": "Not found - Storage resource not found",
+          "content_type": "application/json"
+        }
+      }
+    }
+  ],
   "consumed_apis": []
 }
