@@ -172,6 +172,29 @@ module "eks" {
   depends_on = [ module.vpc ]
 }
 
+resource "aws_iam_policy" "sqs_redrive_policy" {
+  name = "SQSRedrivePolicy-${var.cluster_name}"
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:SendMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = [
+          aws_sqs_queue.pet_clinic_reports.arn,
+          aws_sqs_queue.pet_clinic_reports_dlq.arn
+        ]
+      }
+    ]
+  })
+}
+
 module "demo_service_account" {
   #checkov:skip=CKV_TF_1:sub-module hash key ignored
   source = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
@@ -179,7 +202,7 @@ module "demo_service_account" {
   create_role                   = true
   role_name                     = "DemoServiceRole-${var.cluster_name}"
   provider_url                  = replace(module.eks.oidc_provider, "https://", "")
-  role_policy_arns              = ["arn:aws:iam::aws:policy/AmazonSQSFullAccess", "arn:aws:iam::aws:policy/AmazonS3FullAccess", "arn:aws:iam::aws:policy/AmazonKinesisFullAccess", "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess", "arn:aws:iam::aws:policy/AmazonBedrockFullAccess", "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"]
+  role_policy_arns              = ["arn:aws:iam::aws:policy/AmazonSQSFullAccess", "arn:aws:iam::aws:policy/AmazonS3FullAccess", "arn:aws:iam::aws:policy/AmazonKinesisFullAccess", "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess", "arn:aws:iam::aws:policy/AmazonBedrockFullAccess", "arn:aws:iam::aws:policy/AmazonBedrockFullAccess", aws_iam_policy.sqs_redrive_policy.arn]
   oidc_fully_qualified_subjects = ["system:serviceaccount:default:visits-service-account"]
 }
 
@@ -211,6 +234,22 @@ resource "aws_kinesis_stream" "apm_test_stream" {
   #checkov:skip=CKV_AWS_185:demo only, not encryption is needed
   name             = "apm_test"
   shard_count      = 1
+}
+
+resource "aws_sqs_queue" "pet_clinic_reports_dlq" {
+  #checkov:skip=CKV_AWS_27:demo only, not encryption is needed
+  name = "pet-clinic-reports-dlq"
+}
+
+resource "aws_sqs_queue" "pet_clinic_reports" {
+  #checkov:skip=CKV_AWS_27:demo only, not encryption is needed
+  name                      = "pet-clinic-reports"
+  visibility_timeout_seconds = 300
+  
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.pet_clinic_reports_dlq.arn
+    maxReceiveCount     = 3
+  })
 }
 
 resource "aws_sqs_queue" "apm_test_queue" {
