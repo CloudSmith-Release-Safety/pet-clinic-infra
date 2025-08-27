@@ -3,6 +3,14 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# FEATURE FLAG INFRASTRUCTURE - Remove when canary no longer needs it
+resource "aws_ssm_parameter" "visit_feature_flag" {
+  name  = "/petclinic/features/ENABLE_NEW_VISIT_FLOW"
+  type  = "String"
+  value = "true"
+  description = "Feature flag for new visit flow - REMOVE after canary cleanup"
+}
+
 module "vpc" {
   #checkov:skip=CKV2_AWS_19:low priority, skip
   #checkov:skip=CKV2_AWS_12:low priority, skip
