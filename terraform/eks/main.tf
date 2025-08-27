@@ -3,6 +3,9 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# REMOVED: ENABLE_NEW_VISIT_FLOW feature flag SSM parameter
+# This parameter was removed after canary cleanup
+
 module "vpc" {
   #checkov:skip=CKV2_AWS_19:low priority, skip
   #checkov:skip=CKV2_AWS_12:low priority, skip
