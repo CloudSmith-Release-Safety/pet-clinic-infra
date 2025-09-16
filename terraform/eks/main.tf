@@ -101,9 +101,11 @@ module "eks" {
     default = {
       desired_size = 3
       # iam_role_additional_policies = ["arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"]
-      instance_types = ["t3.large"]
+      instance_types = ["t3.xlarge"]  # Increased from t3.large for better performance
       tags = {
         Owner = "default"
+        Environment = "production"
+        MemoryOptimized = "true"
       }
       security_group_rules = {
         ingress_self_all = {
@@ -255,4 +257,16 @@ resource "aws_sqs_queue" "pet_clinic_reports" {
 resource "aws_sqs_queue" "apm_test_queue" {
   #checkov:skip=CKV_AWS_27:demo only, not encryption is needed
   name                      = "apm_test"
+}
+
+resource "aws_sqs_queue" "pet_clinic_reports_queue" {
+  #checkov:skip=CKV_AWS_27:demo only, not encryption is needed
+  name                      = "pet-clinic-reports"
+  visibility_timeout_seconds = 300
+  message_retention_seconds = 1209600
+  
+  tags = {
+    Environment = "production"
+    Service = "event-processor"
+  }
 }
